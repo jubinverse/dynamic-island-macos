@@ -6,6 +6,8 @@ final class BatteryMonitor: ObservableObject {
     @Published private(set) var isCharging = false
     @Published private(set) var isPluggedIn = false
     @Published private(set) var hasBattery = false
+    /// Minutes until full while charging; nil while macOS is still estimating.
+    @Published private(set) var minutesToFull: Int?
 
     private var runLoopSource: CFRunLoopSource?
 
@@ -45,6 +47,8 @@ final class BatteryMonitor: ObservableObject {
             }
             isCharging = desc[kIOPSIsChargingKey] as? Bool ?? false
             isPluggedIn = (desc[kIOPSPowerSourceStateKey] as? String) == kIOPSACPowerValue
+            let minutes = desc[kIOPSTimeToFullChargeKey] as? Int ?? -1
+            minutesToFull = minutes > 0 ? minutes : nil
         }
     }
 }

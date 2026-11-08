@@ -49,6 +49,19 @@ struct NotchView: View {
                             removal: .opacity.animation(.easeOut(duration: 0.12))
                         )
                     )
+            } else if let charging = vm.charging {
+                ChargingBanner(info: charging, notchHeight: vm.notchSize.height, animated: !vm.isSnapshot)
+                    .padding(.horizontal, topRadius + 14)
+                    .contentShape(Rectangle())
+                    .onTapGesture(perform: onBannerTap)
+                    .id(charging.id)
+                    .transition(
+                        .asymmetric(
+                            insertion: .opacity.combined(with: .scale(scale: 0.8, anchor: .top))
+                                .animation(.spring(response: 0.4, dampingFraction: 0.75).delay(0.05)),
+                            removal: .opacity.animation(.easeOut(duration: 0.12))
+                        )
+                    )
             } else if let airPods = vm.airPods {
                 AirPodsBanner(info: airPods, notchHeight: vm.notchSize.height)
                     .padding(.horizontal, topRadius + 14)
@@ -81,6 +94,7 @@ struct NotchView: View {
         .animation(.spring(response: 0.45, dampingFraction: 0.8), value: vm.activity)
         .animation(.spring(response: 0.45, dampingFraction: 0.72), value: vm.banner)
         .animation(.spring(response: 0.45, dampingFraction: 0.72), value: vm.airPods)
+        .animation(.spring(response: 0.45, dampingFraction: 0.72), value: vm.charging)
         .animation(.easeInOut(duration: 0.2), value: vm.notchSize)
     }
 
@@ -222,11 +236,6 @@ private struct ClosedActivityView: View {
         case .media:
             ArtworkView(image: info.artwork, cornerRadius: 5)
                 .frame(width: height - 14, height: height - 14)
-        case .charging:
-            Image(systemName: "bolt.fill")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.green)
-                .symbolEffect(.pulse)
         case .none:
             EmptyView()
         }
@@ -237,11 +246,6 @@ private struct ClosedActivityView: View {
         case .media:
             Waveform(isPlaying: info.isPlaying, color: info.artwork?.averageColor ?? .white)
                 .frame(width: 18, height: height - 20)
-        case .charging(let level):
-            Text("\(level)%")
-                .font(.system(size: 12, weight: .semibold))
-                .monospacedDigit()
-                .foregroundStyle(.green)
         case .none:
             EmptyView()
         }

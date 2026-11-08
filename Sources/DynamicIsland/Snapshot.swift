@@ -84,6 +84,17 @@ enum SnapshotRenderer {
                  nowPlaying: playingMonitor, notifications: idleNotifications, calendar: idleCalendar),
         ]
 
+        // Charging banner
+        do {
+            let vm = NotchViewModel()
+            vm.configurePreview(notchSize: notch)
+            vm.isSnapshot = true
+            vm.charging = ChargingInfo(level: 82, minutesToFull: 38)
+            render(NotchView(vm: vm, battery: battery, nowPlaying: playingMonitor, calendar: idleCalendar,
+                             shelf: shelf, notifications: idleNotifications, settings: settings, onBannerTap: {}),
+                   to: dir.appendingPathComponent("11-charging.png"))
+        }
+
         // AirPods connect banner
         do {
             let vm = NotchViewModel()

@@ -28,7 +28,6 @@ enum IslandPage: String, CaseIterable, Identifiable {
 enum LiveActivity: Equatable {
     case none
     case media
-    case charging(level: Int)
 }
 
 final class NotchViewModel: ObservableObject {
@@ -38,8 +37,12 @@ final class NotchViewModel: ObservableObject {
     @Published var banner: IslandNotification?
     /// AirPods that just connected, shown as a drop-down like a notification.
     @Published var airPods: AirPodsInfo?
+    /// Shown briefly when the charger is plugged in.
+    @Published var charging: ChargingInfo?
+    /// Snapshot mode renders finished states instead of animating into them.
+    var isSnapshot = false
 
-    var isShowingBanner: Bool { banner != nil || airPods != nil }
+    var isShowingBanner: Bool { banner != nil || airPods != nil || charging != nil }
     @Published var page: IslandPage = .media
     @Published var availablePages: [IslandPage] = IslandPage.allCases {
         didSet {

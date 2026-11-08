@@ -34,7 +34,7 @@ final class NotchWindowController {
     /// The panel is a fixed canvas big enough for the expanded island; the island
     /// itself is drawn at the top-center and everything else is transparent.
     private static let canvasSize = CGSize(width: 700, height: 280)
-    private static let chargingFlashDuration: TimeInterval = 3.5
+    private static let chargingBannerDuration: TimeInterval = 4
 
     private let viewModel = NotchViewModel()
     private let battery = BatteryMonitor()
@@ -48,9 +48,7 @@ final class NotchWindowController {
 
     private var eventMonitors: [Any] = []
     private var cancellables: Set<AnyCancellable> = []
-    private var chargingFlashEnd: DispatchWorkItem?
     private var bannerDismiss: DispatchWorkItem?
-    private var isChargingFlashActive = false
 
     // Mouse tracking state
     private var mouseDownInsideIsland = false
@@ -131,16 +129,11 @@ final class NotchWindowController {
     }
 
     private func flashCharging() {
-        guard settings.showChargingAnimation else { return }
-        isChargingFlashActive = true
-        updateActivity()
-        chargingFlashEnd?.cancel()
-        let end = DispatchWorkItem { [weak self] in
-            self?.isChargingFlashActive = false
-            self?.updateActivity()
-        }
-        chargingFlashEnd = end
-        DispatchQueue.main.asyncAfter(deadline: .now() + Self.chargingFlashDuration, execute: end)
+        guard settings.showChargingAnimation, battery.hasBattery, !viewModel.isExpanded else { return }
+        viewModel.banner = nil
+        viewModel.airPods = nil
+        viewModel.charging = ChargingInfo(level: battery.level, minutesToFull: battery.minutesToFull)
+        scheduleBannerDismiss(after: Self.chargingBannerDuration)
     }
 
     // MARK: - Notification banners
@@ -149,6 +142,7 @@ final class NotchWindowController {
         // While the island is open, the notification just lands in the Notifications page.
         guard settings.showNotifications, !viewModel.isExpanded else { return }
         viewModel.airPods = nil
+        viewModel.charging = nil
         viewModel.banner = item
         scheduleBannerDismiss(after: item.isCall ? 25 : 6)
     }
@@ -156,6 +150,7 @@ final class NotchWindowController {
     private func showAirPods(_ info: AirPodsInfo) {
         guard settings.showAirPods, !viewModel.isExpanded else { return }
         viewModel.banner = nil
+        viewModel.charging = nil
         viewModel.airPods = info
         scheduleBannerDismiss(after: 4)
     }
@@ -170,6 +165,7 @@ final class NotchWindowController {
             } else {
                 self.viewModel.banner = nil
                 self.viewModel.airPods = nil
+                self.viewModel.charging = nil
             }
         }
         bannerDismiss = work
@@ -181,13 +177,12 @@ final class NotchWindowController {
         bannerDismiss?.cancel()
         viewModel.banner = nil
         viewModel.airPods = nil
+        viewModel.charging = nil
     }
 
     private func updateActivity() {
         let next: LiveActivity
-        if isChargingFlashActive {
-            next = .charging(level: battery.level)
-        } else if settings.showMediaActivity, nowPlaying.info.hasContent, nowPlaying.info.isPlaying {
+        if settings.showMediaActivity, nowPlaying.info.hasContent, nowPlaying.info.isPlaying {
             next = .media
         } else {
             next = .none
