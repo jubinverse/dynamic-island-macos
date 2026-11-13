@@ -7,6 +7,7 @@ enum SnapshotRenderer {
     @MainActor
     static func run(outputDirectory: String) {
         let dir = URL(fileURLWithPath: outputDirectory, isDirectory: true)
+        NotificationsPage.isRunningFromXcode = false // show the real permission card
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
 
         let notch = CGSize(width: 209, height: 38) // MacBook Air 13" notch
@@ -122,6 +123,7 @@ enum SnapshotRenderer {
                 shelf: shelf, notifications: shot.notifications, settings: settings, onBannerTap: {}
             ), to: dir.appendingPathComponent("\(shot.name).png"))
         }
+        renderControlGallery(to: dir.appendingPathComponent("0-controls.png"))
         print("Snapshots written to \(dir.path)")
     }
 
@@ -137,6 +139,46 @@ enum SnapshotRenderer {
               let tiff = image.tiffRepresentation,
               let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:])
         else { return }
+        try? png.write(to: url)
+    }
+
+    /// Every button role and size, at rest and hovered-looking, on the island's black.
+    @MainActor
+    private static func renderControlGallery(to url: URL) {
+        let gallery = VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 10) {
+                IslandButton(title: "Open Settings", role: .prominent) {}
+                IslandButton(title: "Show in Finder", role: .gray) {}
+                IslandButton(title: "Join", systemImage: "video.fill", role: .tinted, tint: Island.green) {}
+                IslandButton(title: "Retry", role: .tinted, tint: Island.blue) {}
+            }
+            HStack(spacing: 10) {
+                IslandButton(title: "Open Settings", role: .prominent, size: .small) {}
+                IslandButton(title: "Show in Finder", role: .gray, size: .small) {}
+                IslandButton(title: "Join", systemImage: "video.fill", role: .tinted, tint: Island.green, size: .small) {}
+                IslandButton(title: "Delete", role: .tinted, tint: Island.red, size: .small) {}
+            }
+            HStack(spacing: 18) {
+                IslandIconButton(systemImage: "backward.fill", size: 17, diameter: 36) {}
+                IslandIconButton(systemImage: "play.fill", size: 24, diameter: 40) {}
+                IslandIconButton(systemImage: "forward.fill", size: 17, diameter: 36) {}
+                IslandIconButton(systemImage: "gearshape", size: 13, diameter: 26, color: Island.secondary) {}
+            }
+            HStack(spacing: 14) {
+                IslandGlyph(symbol: "bell.badge.fill", tint: Island.red)
+                IslandGlyph(symbol: "music.note", tint: Island.pink)
+                IslandGlyph(symbol: "calendar", tint: Island.red)
+                IslandGlyph(symbol: "exclamationmark.triangle.fill", tint: Island.orange)
+                IslandGlyph(symbol: "video.fill", tint: Island.blue)
+            }
+        }
+        .padding(28)
+        .background(Color.black)
+        .environment(\.colorScheme, .dark)
+        let renderer = ImageRenderer(content: gallery)
+        renderer.scale = 2
+        guard let image = renderer.nsImage, let tiff = image.tiffRepresentation,
+              let png = NSBitmapImageRep(data: tiff)?.representation(using: .png, properties: [:]) else { return }
         try? png.write(to: url)
     }
 

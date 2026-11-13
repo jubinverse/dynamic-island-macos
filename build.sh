@@ -1,17 +1,19 @@
 #!/bin/bash
 # Builds DynamicIsland.app into ./build. Pass --run to (re)launch it afterwards.
+# CONFIG=debug builds a debug binary (used by the "Dynamic Island (App)" Xcode scheme).
 set -euo pipefail
 cd "$(dirname "$0")"
 
-swift build -c release
+CONFIG="${CONFIG:-release}"
+swift build -c "$CONFIG"
 
 APP="build/DynamicIsland.app"
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS"
-cp .build/release/DynamicIsland "$APP/Contents/MacOS/"
+cp ".build/$CONFIG/DynamicIsland" "$APP/Contents/MacOS/"
 mkdir -p "$APP/Contents/Resources"
 cp Resources/Info.plist "$APP/Contents/"
-cp .build/release/libNowPlayingHelper.dylib "$APP/Contents/Resources/"
+cp ".build/$CONFIG/libNowPlayingHelper.dylib" "$APP/Contents/Resources/"
 cp Resources/AppIcon.icns "$APP/Contents/Resources/"
 # Sign with an Apple Development certificate if one exists (Xcode → Settings → Accounts).
 # A stable identity means macOS keeps permissions like Full Disk Access across rebuilds;

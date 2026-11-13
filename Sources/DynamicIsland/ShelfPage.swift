@@ -34,7 +34,7 @@ struct ShelfPage: View {
                             .foregroundStyle(Island.tertiary)
                         Spacer()
                         Button("Clear All", action: shelf.clear)
-                            .buttonStyle(.plain)
+                            .buttonStyle(IslandPressStyle())
                             .font(Island.caption)
                             .foregroundStyle(Island.secondary)
                     }

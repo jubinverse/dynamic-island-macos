@@ -8,9 +8,9 @@ enum IslandPage: String, CaseIterable, Identifiable {
     var symbol: String {
         switch self {
         case .media: return "music.note"
-        case .notifications: return "bell.fill"
+        case .notifications: return "bell"
         case .calendar: return "calendar"
-        case .shelf: return "tray.full"
+        case .shelf: return "tray"
         }
     }
 

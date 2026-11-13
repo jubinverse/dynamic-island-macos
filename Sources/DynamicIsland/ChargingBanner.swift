@@ -16,28 +16,30 @@ struct ChargingInfo: Equatable, Identifiable {
     static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
 }
 
-/// Drop-down shown when the charger is plugged in: a battery that fills to the current
-/// level, a bolt that pops in, a soft green glow, and a percentage that counts up.
+/// Drop-down shown when the charger is plugged in: a circular charge ring that sweeps to the
+/// current level with light travelling around it, a bolt that pops in and breathes, a soft
+/// ripple, and a percentage that counts up.
 struct ChargingBanner: View {
     let info: ChargingInfo
     let notchHeight: CGFloat
     /// Snapshots render the finished state; the live island animates into it.
     var animated = true
 
-    @State private var fill: CGFloat = 0
+    @State private var progress: CGFloat = 0
     @State private var shownLevel = 0
     @State private var boltVisible = false
-    @State private var glowing = false
+    @State private var pulsing = false
 
-    private static let green = Color(red: 0.2, green: 0.84, blue: 0.4)
+    private var tint: Color { info.level <= 10 ? Island.red : Island.green }
 
     var body: some View {
         HStack(spacing: 14) {
-            AnimatedBattery(fill: fill, boltVisible: boltVisible, glowing: glowing, tint: Self.green)
-                .frame(width: 52, height: 26)
+            ChargeRing(progress: progress, boltVisible: boltVisible, pulsing: pulsing,
+                       animated: animated, tint: tint)
+                .frame(width: 44, height: 44)
 
             VStack(alignment: .leading, spacing: 2) {
-                Text("Charging")
+                Text(info.level >= 100 ? "Charged" : "Charging")
                     .font(Island.headline)
                     .foregroundStyle(Island.primary)
                 Text(info.subtitle)
@@ -50,83 +52,122 @@ struct ChargingBanner: View {
             Text("\(shownLevel)%")
                 .font(.system(size: 26, weight: .semibold, design: .rounded))
                 .monospacedDigit()
-                .foregroundStyle(Self.green)
+                .foregroundStyle(tint)
                 .contentTransition(.numericText(value: Double(shownLevel)))
         }
-        .padding(.top, notchHeight + 6)
-        .padding(.bottom, 14)
+        .padding(.top, notchHeight + 4)
+        .padding(.bottom, 12)
         .onAppear(perform: start)
     }
 
     private func start() {
         let target = CGFloat(min(max(info.level, 0), 100)) / 100
         guard animated else {
-            fill = target
+            progress = target
             shownLevel = info.level
             boltVisible = true
             return
         }
-        withAnimation(.easeOut(duration: 1.0).delay(0.2)) {
-            fill = target
+        withAnimation(.easeOut(duration: 1.1).delay(0.15)) {
+            progress = target
             shownLevel = info.level
         }
-        withAnimation(.spring(response: 0.35, dampingFraction: 0.5).delay(0.9)) {
+        withAnimation(.spring(response: 0.38, dampingFraction: 0.52).delay(0.35)) {
             boltVisible = true
         }
-        withAnimation(.easeInOut(duration: 1.1).repeatForever(autoreverses: true).delay(1.0)) {
-            glowing = true
+        withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true).delay(1.2)) {
+            pulsing = true
         }
     }
 }
 
-/// Battery outline with an animated fill, terminal cap, lightning bolt and glow.
-private struct AnimatedBattery: View {
-    let fill: CGFloat
+/// Apple Watch–style charge ring: track, gradient arc with a glowing head, a highlight that
+/// travels along the filled arc, an expanding ripple and a breathing bolt in the centre.
+private struct ChargeRing: View {
+    let progress: CGFloat
     let boltVisible: Bool
-    let glowing: Bool
+    let pulsing: Bool
+    let animated: Bool
+    let tint: Color
+
+    private let lineWidth: CGFloat = 4.5
+
+    var body: some View {
+        ZStack {
+            // Ripple radiating outward while charging.
+            if animated {
+                Ripple(tint: tint)
+            }
+
+            // Track.
+            Circle()
+                .stroke(Color.white.opacity(0.12), lineWidth: lineWidth)
+
+            // Charge arc.
+            Circle()
+                .trim(from: 0, to: max(progress, 0.001))
+                .stroke(
+                    AngularGradient(colors: [tint.opacity(0.55), tint],
+                                    center: .center,
+                                    startAngle: .degrees(0),
+                                    endAngle: .degrees(360 * max(Double(progress), 0.01))),
+                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
+                )
+                .rotationEffect(.degrees(-90))
+                .shadow(color: tint.opacity(0.6), radius: pulsing ? 5 : 2)
+
+            // Light travelling along the filled arc.
+            if animated {
+                TimelineView(.animation) { context in
+                    let t = context.date.timeIntervalSinceReferenceDate
+                    let phase = CGFloat(t.truncatingRemainder(dividingBy: 1.6) / 1.6)
+                    let head = phase * progress
+                    Circle()
+                        .trim(from: max(head - 0.12, 0), to: head)
+                        .stroke(
+                            LinearGradient(colors: [.white.opacity(0), .white.opacity(0.75)],
+                                           startPoint: .leading, endPoint: .trailing),
+                            style: StrokeStyle(lineWidth: lineWidth - 1.5, lineCap: .round)
+                        )
+                        .rotationEffect(.degrees(-90))
+                        .opacity(progress > 0.05 ? 1 : 0)
+                }
+            }
+
+            // Glowing head at the end of the arc.
+            Circle()
+                .fill(.white)
+                .frame(width: lineWidth - 1, height: lineWidth - 1)
+                .shadow(color: tint, radius: 3)
+                .offset(y: -22)
+                .rotationEffect(.degrees(360 * Double(progress)))
+                .opacity(progress > 0.02 && progress < 1 ? 1 : 0)
+
+            // Bolt.
+            Image(systemName: "bolt.fill")
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(tint)
+                .shadow(color: tint.opacity(pulsing ? 0.9 : 0.4), radius: pulsing ? 6 : 3)
+                .scaleEffect(boltVisible ? (pulsing ? 1.08 : 1) : 0.2)
+                .opacity(boltVisible ? 1 : 0)
+        }
+    }
+}
+
+/// Two staggered rings expanding out of the charge ring and fading away.
+private struct Ripple: View {
     let tint: Color
 
     var body: some View {
-        GeometryReader { geo in
-            let capWidth: CGFloat = 3
-            let bodyWidth = geo.size.width - capWidth - 1
-            let height = geo.size.height
-            let inset: CGFloat = 3
-            let innerWidth = bodyWidth - inset * 2
-
-            ZStack(alignment: .leading) {
-                // Glow behind the battery.
-                RoundedRectangle(cornerRadius: 8, style: .continuous)
-                    .fill(tint)
-                    .frame(width: bodyWidth, height: height)
-                    .blur(radius: 10)
-                    .opacity(glowing ? 0.45 : 0.15)
-
-                // Outline.
-                RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .strokeBorder(Color.white.opacity(0.35), lineWidth: 2)
-                    .frame(width: bodyWidth, height: height)
-
-                // Terminal cap.
-                RoundedRectangle(cornerRadius: 1.5)
-                    .fill(Color.white.opacity(0.35))
-                    .frame(width: capWidth, height: height * 0.36)
-                    .offset(x: bodyWidth + 1)
-
-                // Charge fill.
-                RoundedRectangle(cornerRadius: 4, style: .continuous)
-                    .fill(LinearGradient(colors: [tint, tint.opacity(0.75)], startPoint: .top, endPoint: .bottom))
-                    .frame(width: max(innerWidth * fill, fill > 0 ? 4 : 0), height: height - inset * 2)
-                    .offset(x: inset)
-
-                // Lightning bolt, centred on the battery body.
-                Image(systemName: "bolt.fill")
-                    .font(.system(size: height * 0.62, weight: .bold))
-                    .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.35), radius: 1.5)
-                    .scaleEffect(boltVisible ? 1 : 0.2)
-                    .opacity(boltVisible ? 1 : 0)
-                    .frame(width: bodyWidth, height: height)
+        TimelineView(.animation) { context in
+            let t = context.date.timeIntervalSinceReferenceDate
+            ZStack {
+                ForEach(0..<2, id: \.self) { i in
+                    let p = CGFloat(((t + Double(i) * 1.1) .truncatingRemainder(dividingBy: 2.2)) / 2.2)
+                    Circle()
+                        .stroke(tint.opacity(0.45 * (1 - p)), lineWidth: 1.5)
+                        .scaleEffect(1 + p * 0.35)
+                }
             }
         }
     }

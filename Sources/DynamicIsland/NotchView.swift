@@ -107,17 +107,10 @@ struct NotchView: View {
                 if battery.hasBattery {
                     BatteryBadge(battery: battery)
                 }
-                Button {
+                IslandIconButton(systemImage: "gearshape", size: 13, diameter: 26,
+                                 color: Island.secondary, help: "Settings") {
                     SettingsWindowController.shared.show()
-                } label: {
-                    Image(systemName: "gearshape.fill")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Island.tertiary)
-                        .frame(width: 24, height: 24)
-                        .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
-                .help("Settings")
             }
             .frame(height: vm.notchSize.height)
 
@@ -163,25 +156,41 @@ private struct PageTabs: View {
 
     var body: some View {
         if vm.availablePages.count > 1 {
-            HStack(spacing: 2) {
+            // Segmented control, like macOS's: a recessed track with a raised selected segment.
+            HStack(spacing: 0) {
                 ForEach(vm.availablePages) { page in
-                    Button {
-                        vm.page = page
-                    } label: {
-                        Image(systemName: page.symbol)
-                            .font(.system(size: 12, weight: .medium))
-                            .frame(width: 30, height: 24)
-                            .foregroundStyle(vm.page == page ? Island.primary : Island.tertiary)
-                            .background(Capsule().fill(vm.page == page ? Island.fillHover : .clear))
-                            .contentShape(Capsule())
-                    }
-                    .buttonStyle(.plain)
-                    .help(page.title)
+                    PageTab(page: page, isSelected: vm.page == page) { vm.page = page }
                 }
             }
             .padding(2)
             .background(Capsule().fill(Island.fill))
         }
+    }
+}
+
+private struct PageTab: View {
+    let page: IslandPage
+    let isSelected: Bool
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: page.symbol)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(isSelected ? Island.primary : (hovering ? Island.secondary : Island.tertiary))
+                .frame(width: 32, height: 24)
+                .background(
+                    Capsule()
+                        .fill(isSelected ? Island.fillStrong : .clear)
+                        .shadow(color: .black.opacity(isSelected ? 0.35 : 0), radius: 1.5, y: 1)
+                )
+                .contentShape(Capsule())
+                .animation(.easeOut(duration: 0.12), value: hovering)
+        }
+        .buttonStyle(IslandPressStyle())
+        .onHover { hovering = $0 }
+        .help(page.title)
     }
 }
 
@@ -208,7 +217,7 @@ private struct BatteryBadge: View {
             Image(systemName: symbol)
                 .font(.system(size: 13))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(battery.isCharging ? Color.green : (battery.level < 20 ? Color.red : Island.secondary))
+                .foregroundStyle(battery.isCharging ? Island.green : (battery.level < 20 ? Island.red : Island.secondary))
         }
     }
 }

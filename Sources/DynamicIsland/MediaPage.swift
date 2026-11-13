@@ -3,7 +3,7 @@ import SwiftUI
 struct MediaPage: View {
     @ObservedObject var nowPlaying: NowPlayingMonitor
 
-    private static let musicTint = Color(red: 0.98, green: 0.24, blue: 0.35)
+    private static let musicTint = Island.pink
 
     var body: some View {
         if nowPlaying.info.hasContent {
@@ -69,12 +69,17 @@ private struct MediaPlayer: View {
 
                 Spacer(minLength: 0)
 
-                HStack(spacing: 40) {
-                    ControlButton(symbol: "backward.fill", size: 16) { nowPlaying.send(.previous) }
-                    ControlButton(symbol: info.isPlaying ? "pause.fill" : "play.fill", size: 22) {
+                HStack(spacing: 28) {
+                    IslandIconButton(systemImage: "backward.fill", size: 17, diameter: 36, help: "Previous") {
+                        nowPlaying.send(.previous)
+                    }
+                    IslandIconButton(systemImage: info.isPlaying ? "pause.fill" : "play.fill", size: 24, diameter: 40,
+                                     help: info.isPlaying ? "Pause" : "Play") {
                         nowPlaying.send(.toggle)
                     }
-                    ControlButton(symbol: "forward.fill", size: 16) { nowPlaying.send(.next) }
+                    IslandIconButton(systemImage: "forward.fill", size: 17, diameter: 36, help: "Next") {
+                        nowPlaying.send(.next)
+                    }
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -117,27 +122,6 @@ private struct ProgressRow: View {
         return s >= 3600
             ? String(format: "%d:%02d:%02d", s / 3600, (s / 60) % 60, s % 60)
             : String(format: "%d:%02d", s / 60, s % 60)
-    }
-}
-
-private struct ControlButton: View {
-    let symbol: String
-    let size: CGFloat
-    let action: () -> Void
-    @State private var hovering = false
-
-    var body: some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: size))
-                .foregroundStyle(Island.primary)
-                .contentTransition(.symbolEffect(.replace))
-                .frame(width: 32, height: 28)
-                .background(Circle().fill(Island.fill).opacity(hovering ? 1 : 0).frame(width: 34, height: 34))
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(PressScaleStyle())
-        .onHover { hovering = $0 }
     }
 }
 

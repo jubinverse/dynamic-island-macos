@@ -14,7 +14,7 @@ struct CalendarPage: View {
             .frame(maxHeight: .infinity)
         case .unknown:
             IslandMessageCard(
-                symbol: "calendar", tint: .red,
+                symbol: "calendar", tint: Island.red,
                 title: "See Your Next Meetings",
                 message: "Upcoming events with a Join button for Zoom, Meet and Teams.",
                 primary: ("Allow Access", {
@@ -24,14 +24,14 @@ struct CalendarPage: View {
             )
         case .denied:
             IslandMessageCard(
-                symbol: "calendar", tint: .red,
+                symbol: "calendar", tint: Island.red,
                 title: "Calendar Access Is Off",
                 message: "Turn on Calendars for Dynamic Island in Privacy & Security.",
                 primary: ("Open Settings", calendar.openPrivacySettings)
             )
         case .unavailable:
             IslandMessageCard(
-                symbol: "calendar", tint: .red,
+                symbol: "calendar", tint: Island.red,
                 title: "Calendar Unavailable",
                 message: "Apps run from Xcode can’t access Calendar. Launch the built app instead."
             )
@@ -88,12 +88,14 @@ private struct EventRow: View {
                     .lineLimit(1)
                 Text(timeLabel)
                     .font(Island.caption)
-                    .foregroundStyle(event.isHappeningNow ? Color.green : Island.secondary)
+                    .foregroundStyle(event.isHappeningNow ? Island.green : Island.secondary)
                     .lineLimit(1)
             }
             Spacer(minLength: 8)
             if let url = event.meetingURL {
-                IslandButton(title: "Join", tint: .green) { NSWorkspace.shared.open(url) }
+                IslandButton(title: "Join", systemImage: "video.fill", role: .tinted, tint: Island.green, size: .small) {
+                    NSWorkspace.shared.open(url)
+                }
             }
         }
         .frame(height: 32)

@@ -59,11 +59,11 @@ private struct CallIndicator: View {
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.green.opacity(0.6), lineWidth: 2)
+                .stroke(Island.green.opacity(0.6), lineWidth: 2)
                 .scaleEffect(pulse ? 1.5 : 1)
                 .opacity(pulse ? 0 : 1)
             Circle()
-                .fill(Color.green)
+                .fill(Island.green)
             Image(systemName: "phone.fill")
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(.white)
@@ -80,14 +80,14 @@ struct NotificationsPage: View {
     @ObservedObject var monitor: NotificationMonitor
 
     /// Xcode runs the bare executable (no .app bundle) from DerivedData.
-    static let isRunningFromXcode = Bundle.main.bundleURL.pathExtension != "app"
+    static var isRunningFromXcode = Bundle.main.bundleURL.pathExtension != "app"
 
     var body: some View {
         switch monitor.access {
         case .granted:
             if monitor.recent.isEmpty {
                 IslandMessageCard(
-                    symbol: "bell.fill", tint: .red,
+                    symbol: "bell.fill", tint: Island.red,
                     title: "No Notifications",
                     message: "Messages from WhatsApp, Slack, Claude and other apps will appear here."
                 )
@@ -100,13 +100,13 @@ struct NotificationsPage: View {
         case .needsFullDiskAccess:
             if Self.isRunningFromXcode {
                 IslandMessageCard(
-                    symbol: "bell.badge.fill", tint: .red,
+                    symbol: "bell.badge.fill", tint: Island.red,
                     title: "Notifications Unavailable",
                     message: "Apps run from Xcode can’t read notifications. Launch the built app instead."
                 )
             } else {
                 IslandMessageCard(
-                    symbol: "bell.badge.fill", tint: .red,
+                    symbol: "bell.badge.fill", tint: Island.red,
                     title: "Show Notifications Here",
                     message: "Allow Full Disk Access so Dynamic Island can read Notification Center.",
                     primary: ("Open Settings", monitor.openFullDiskAccessSettings),
@@ -117,7 +117,7 @@ struct NotificationsPage: View {
             }
         case .unsupported:
             IslandMessageCard(
-                symbol: "exclamationmark.triangle.fill", tint: .orange,
+                symbol: "exclamationmark.triangle.fill", tint: Island.orange,
                 title: "Notifications Unavailable",
                 message: "This version of macOS stores notifications in a format Dynamic Island can’t read."
             )
